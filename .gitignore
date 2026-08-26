@@ -6,3 +6,9 @@ venv/
 .env
 .vscode/
 .idea/
+BugsInPy/
+bug_repositories/
+data/
+__pycache__/
+.pytest_cache/
+*.pyc
