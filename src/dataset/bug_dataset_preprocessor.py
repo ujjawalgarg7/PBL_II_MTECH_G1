@@ -30,7 +30,7 @@ class BugDatasetPreprocessor:
 
         for file_data in files:
             file_name = file_data.get("file", "")
-            source = file_data.get("source", "")
+            source = file_data.get("buggy_code", "")
 
             parts.append(
                 f"===== FILE: {file_name} =====\n"

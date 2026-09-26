@@ -1,3 +1,7 @@
+import json
+from pathlib import Path
+
+
 class SemanticMemory:
     """
     Stores stable facts and verified knowledge.
@@ -84,6 +88,35 @@ class SemanticMemory:
         """Remove all semantic facts."""
 
         self._facts.clear()
+
+    def save(self, path):
+        """Persist the current facts to a JSON file."""
+
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(self.get_all(), indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        return path
+
+    def load(self, path):
+        """Replace current facts with those stored in a JSON file."""
+
+        path = Path(path)
+        facts = json.loads(path.read_text(encoding="utf-8"))
+
+        if not isinstance(facts, list) or not all(
+            isinstance(fact, dict) and fact.get("key")
+            for fact in facts
+        ):
+            raise ValueError("Semantic memory JSON must contain fact objects with keys.")
+
+        self._facts = {
+            fact["key"]: fact
+            for fact in facts
+        }
+        return self.get_all()
 
     def __len__(self):
         """Return the number of stored facts."""

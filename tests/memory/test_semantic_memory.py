@@ -128,3 +128,15 @@ def test_empty_key():
             key="",
             value="Something",
         )
+
+
+def test_save_and_load_facts(tmp_path):
+    saved_path = tmp_path / "semantic.json"
+    memory = SemanticMemory()
+    memory.add_fact("database", "PostgreSQL", verified=True)
+    memory.save(saved_path)
+
+    restored = SemanticMemory()
+    restored.load(saved_path)
+
+    assert restored.get_fact("database") == memory.get_fact("database")

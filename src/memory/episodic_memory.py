@@ -1,4 +1,6 @@
 from datetime import datetime
+import json
+from pathlib import Path
 
 
 class EpisodicMemory:
@@ -95,6 +97,31 @@ class EpisodicMemory:
         """Remove all episodic memories."""
 
         self._events.clear()
+
+    def save(self, path):
+        """Persist the current events to a JSON file."""
+
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(self._events, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        return path
+
+    def load(self, path):
+        """Replace current events with those stored in a JSON file."""
+
+        path = Path(path)
+        events = json.loads(path.read_text(encoding="utf-8"))
+
+        if not isinstance(events, list) or not all(
+            isinstance(event, dict) for event in events
+        ):
+            raise ValueError("Episodic memory JSON must contain a list of objects.")
+
+        self._events = events[-self.capacity:]
+        return self.get_all()
 
     def __len__(self):
         """Return the number of stored events."""

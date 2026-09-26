@@ -55,3 +55,16 @@ def test_clear_memory():
 def test_invalid_capacity():
     with pytest.raises(ValueError):
         ShortTermMemory(capacity=0)
+
+
+def test_save_and_load_memory(tmp_path):
+    saved_path = tmp_path / "short_term.json"
+    memory = ShortTermMemory(capacity=2)
+    memory.add("First")
+    memory.add("Second")
+    memory.save(saved_path)
+
+    restored = ShortTermMemory(capacity=2)
+    restored.load(saved_path)
+
+    assert restored.get_all() == ["First", "Second"]

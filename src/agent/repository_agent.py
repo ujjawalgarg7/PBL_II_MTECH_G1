@@ -10,7 +10,7 @@ from src.memory.short_term_memory import ShortTermMemory
 from src.memory.episodic_memory import EpisodicMemory
 from src.memory.semantic_memory import SemanticMemory
 
-from src.retrieval.retrieval import MemoryRetriever
+from src.memory.memory_retriever import MemoryRetriever
 
 
 class RepositoryAgent:

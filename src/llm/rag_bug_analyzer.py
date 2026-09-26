@@ -295,6 +295,7 @@ class RAGBugAnalyzer:
         source_code,
         retrieved_examples,
         static_findings,
+        memories=None,
     ):
         """Build the Ollama prompt."""
 
@@ -341,6 +342,13 @@ Known Patch:
             ensure_ascii=False,
         )
 
+        memory_context = json.dumps(
+            memories or [],
+            indent=2,
+            ensure_ascii=False,
+            default=str,
+        )
+
         return f"""
 You are a Python software bug detection assistant.
 
@@ -361,7 +369,15 @@ similar bugs:
 
 {historical_context}
 
+Relevant Past Memories:
+----------------
+{memory_context}
+----------------
+
 Use BugsInPy examples only as supporting evidence.
+
+Use past memories only as supporting evidence. Verify that
+they apply to the current source code.
 
 Do not assume that a historical bug exists in the
 current source code.
@@ -556,6 +572,7 @@ Rules:
         self,
         source_code,
         top_k=3,
+        memories=None,
     ):
         """
         Analyze Python source code using:
@@ -594,6 +611,7 @@ Rules:
             source_code,
             retrieved,
             static_findings,
+            memories,
         )
 
         try:

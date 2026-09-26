@@ -148,6 +148,7 @@ class RepositoryBugDetector:
         source_code,
         file_path,
         top_k=5,
+        task_id=None,
     ):
         """
         Retrieve relevant memories from the existing
@@ -160,7 +161,8 @@ class RepositoryBugDetector:
         )
 
         results = self.memory_retriever.retrieve(
-            query
+            query,
+            task_id=task_id,
         )
 
         return results[:top_k]
@@ -248,11 +250,13 @@ class RepositoryBugDetector:
             source_code,
             str(path),
             top_k=memory_top_k,
+            task_id=task_id,
         )
 
         result = self.analyzer.analyze(
             source_code,
             top_k=top_k,
+            memories=memories,
         )
 
         analysis = result.get(

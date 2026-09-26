@@ -119,3 +119,15 @@ def test_empty_event():
 
     with pytest.raises(ValueError):
         memory.add_event("")
+
+
+def test_save_and_load_events(tmp_path):
+    saved_path = tmp_path / "episodic.json"
+    memory = EpisodicMemory()
+    memory.add_event("Remember this", importance=0.8, task_id="task-1")
+    memory.save(saved_path)
+
+    restored = EpisodicMemory()
+    restored.load(saved_path)
+
+    assert restored.get_all() == memory.get_all()
