@@ -41,6 +41,29 @@ def _save_detector_memories(detector, memory_directory=Path(".memory")):
         getattr(detector, attribute).save(path)
 
 
+def _source_line(file_path, line_number):
+    """Return a stripped source line when the report location is readable."""
+
+    try:
+        line_number = int(line_number)
+
+        if line_number <= 0:
+            return None
+
+        lines = Path(file_path).read_text(
+            encoding="utf-8",
+            errors="ignore",
+        ).splitlines()
+
+        if line_number > len(lines):
+            return None
+
+        return lines[line_number - 1].strip()
+
+    except (OSError, TypeError, ValueError):
+        return None
+
+
 def print_report(report):
     print()
     print("=" * 40)
@@ -72,6 +95,15 @@ def print_report(report):
 
             print(f"File: {result.get('file')}")
             print(f"Line: {bug.get('line', 'N/A')}")
+
+            source_line = _source_line(
+                result.get("file"),
+                bug.get("line"),
+            )
+
+            if source_line is not None:
+                print(f"Code: {source_line}")
+
             print(f"Type: {bug.get('type', 'unknown')}")
             print(
                 f"Severity: "

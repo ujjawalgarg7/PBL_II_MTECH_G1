@@ -192,21 +192,37 @@ class RepositoryBugDetector:
         )
 
         if bugs:
-            bug_types = [
-                str(
+            bug_types = []
+            locations = []
+
+            for bug in bugs:
+                if not isinstance(bug, dict):
+                    continue
+
+                bug_type = str(
                     bug.get(
                         "type",
                         "unknown",
                     )
                 )
-                for bug in bugs
-            ]
+                bug_types.append(bug_type)
+                locations.append(
+                    f"{file_path}:{bug.get('line', 'unknown')} "
+                    f"({bug_type})"
+                )
 
             event += (
                 " Bug types: "
                 + ", ".join(bug_types)
                 + "."
             )
+
+            if locations:
+                event += (
+                    " Locations: "
+                    + ", ".join(locations)
+                    + "."
+                )
 
         reason = (
             "Repository bug detection result "

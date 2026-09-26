@@ -1,5 +1,6 @@
 import ast
 import json
+import re
 from pathlib import Path
 
 from src.llm.ollama_client import OllamaClient
@@ -488,10 +489,87 @@ Rules:
     # MERGE FINDINGS
     # =========================================================
 
+    @staticmethod
+    def _llm_line_anchor(bug):
+        """Return a source-code marker for bug types with clear syntax."""
+
+        description = " ".join(
+            [
+                str(bug.get("type", "")).lower(),
+                str(bug.get("message", "")).lower(),
+            ]
+        )
+
+        anchors = (
+            ("eval", r"\beval\s*\("),
+            ("exec", r"\bexec\s*\("),
+            ("division_by_zero", r"//|/|%"),
+            ("mutable_default", r"\bdef\b"),
+            ("hardcoded", r"password|secret|token|api[_-]?key"),
+            ("sql_injection", r"execute|executemany|query"),
+        )
+
+        for keyword, pattern in anchors:
+            if keyword in description:
+                return pattern
+
+        return None
+
+    def _validate_llm_bug_line(self, bug, source_code):
+        """Return an LLM bug with a trustworthy location, or ``None``."""
+
+        line = bug.get("line")
+
+        if isinstance(line, bool):
+            return None
+
+        try:
+            line = int(line)
+        except (TypeError, ValueError):
+            return None
+
+        source_lines = source_code.splitlines()
+
+        if not 1 <= line <= len(source_lines):
+            return None
+
+        # Normalize numeric strings returned by the LLM before merging.
+        bug = dict(bug)
+        bug["line"] = line
+
+        candidate = source_lines[line - 1].strip()
+        anchor = self._llm_line_anchor(bug)
+
+        # A blank/comment location cannot describe an executable bug. When a
+        # bug type has a recognizable code marker, relocate it to that marker.
+        clearly_unrelated = not candidate or candidate.startswith("#")
+
+        if anchor and not re.search(anchor, candidate, re.IGNORECASE):
+            clearly_unrelated = True
+
+        if clearly_unrelated:
+            if not anchor:
+                return None
+
+            matching_lines = [
+                index
+                for index, text in enumerate(source_lines, start=1)
+                if re.search(anchor, text, re.IGNORECASE)
+            ]
+
+            if not matching_lines:
+                return None
+
+            line = min(matching_lines, key=lambda value: abs(value - line))
+            bug["line"] = line
+
+        return bug
+
     def _merge_findings(
         self,
         static_findings,
         llm_analysis,
+        source_code=None,
     ):
         """
         Combine static findings and LLM findings.
@@ -538,6 +616,15 @@ Rules:
 
                     if not isinstance(bug, dict):
                         continue
+
+                    if source_code is not None:
+                        bug = self._validate_llm_bug_line(
+                            bug,
+                            source_code,
+                        )
+
+                        if bug is None:
+                            continue
 
                     bug_type = str(
                         bug.get("type", "")
@@ -641,6 +728,7 @@ Rules:
         combined = self._merge_findings(
             static_findings,
             llm_analysis,
+            source_code,
         )
 
         result = {
