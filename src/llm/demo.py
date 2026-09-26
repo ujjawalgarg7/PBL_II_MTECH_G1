@@ -8,6 +8,39 @@ from urllib.parse import urlparse
 from src.llm.repository_bug_detector import RepositoryBugDetector
 
 
+def _memory_paths(memory_directory=Path(".memory")):
+    """Return the JSON paths used to persist detector memory."""
+
+    memory_directory = Path(memory_directory)
+
+    return {
+        "short_term_memory": memory_directory / "short_term.json",
+        "episodic_memory": memory_directory / "episodic.json",
+        "semantic_memory": memory_directory / "semantic.json",
+    }
+
+
+def _load_detector_memories(detector, memory_directory=Path(".memory")):
+    """Load persisted memory when it exists; first runs start empty."""
+
+    memory_directory = Path(memory_directory)
+    memory_directory.mkdir(parents=True, exist_ok=True)
+
+    for attribute, path in _memory_paths(memory_directory).items():
+        if path.exists():
+            getattr(detector, attribute).load(path)
+
+
+def _save_detector_memories(detector, memory_directory=Path(".memory")):
+    """Save all detector memory layers as JSON."""
+
+    memory_directory = Path(memory_directory)
+    memory_directory.mkdir(parents=True, exist_ok=True)
+
+    for attribute, path in _memory_paths(memory_directory).items():
+        getattr(detector, attribute).save(path)
+
+
 def print_report(report):
     print()
     print("=" * 40)
@@ -260,9 +293,13 @@ def analyze_repository(repository_input):
 
         detector = RepositoryBugDetector()
 
+        _load_detector_memories(detector)
+
         report = detector.analyze_repository(
             str(repository_path)
         )
+
+        _save_detector_memories(detector)
 
         # Show the original user input in the report.
         if is_github_url(repository_input):
